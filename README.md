@@ -2,6 +2,8 @@
 
 PyTorch implementation for "Guiding Energy-based Models via Contrastive Latent Variables" (accepted as a Spotlight presentation in ICLR 2023)
 
+<img width="928" alt="스크린샷 2023-03-02 20 59 24" src="https://user-images.githubusercontent.com/4075389/222422785-e3996a2c-499f-42e3-b53e-ac6b885a2c2f.png">
+
 **TL;DR:** A simple yet effective framework for improving energy-based models (EBMs) via contrastive representation learning.
 
 ## Install
