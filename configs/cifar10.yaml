@@ -1,0 +1,35 @@
+logdir: logs/cifar10/resnet_resnet18/ours
+encoder:
+  name: resnet18
+  out_dim: 128
+ebm:
+  name: resnet
+  projection_layers:
+  - 128
+  - 2048
+  - 128
+model:
+  name: JointModel
+  beta: 0.01
+  ebm_augmentation: strong
+  use_neg: true
+sampler:
+  name: MCMCSampler
+  num_steps: 60
+  step_size: 100.0
+  step_clip: null
+  step_noise: 0.001
+  memory_size: 10000
+  memory_init: 0.001
+  augmentation: strong
+data:
+  name: cifar10
+  root: /data
+  batch_size: 64
+  num_workers: 4
+ema:
+  halflife: 20000
+num_iterations: 100000
+log_freq: 10
+val_freq: 2000
+save_freq: 10000
