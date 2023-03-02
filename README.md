@@ -1,5 +1,9 @@
 # Guiding Energy-based Models via Contrastive Latent Variables
 
+PyTorch implementation for "Guiding Energy-based Models via Contrastive Latent Variables" (accepted as a Spotlight presentation in ICLR 2023)
+
+**TL;DR:** A simple yet effective framework for improving energy-based models (EBMs) via contrastive representation learning.
+
 ## Install
 
 ```bash
@@ -35,6 +39,8 @@ This command saves 50k generated samples into `samples.pth` in the log directory
 ## Out-of-distribution Detection
 
 ```bash
-python test_ood.py logs/cifar10/resnet_resnet18/ours/config.yaml use_ema=true ood_data.name=svhn ood_data.root=/data model.beta=0.1 model.ebm_augmentation=none
+python test_ood.py logs/cifar10/resnet_resnet18/ours/config.yaml use_ema=true \
+    ood_data.name=svhn ood_data.root=/data \
+    model.beta=0.1 model.ebm_augmentation=none
 ```
 
