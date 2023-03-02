@@ -110,6 +110,86 @@ class ResNet(nn.Module):
         return f, z
 
 
+class MSResNet(nn.Module):
+    '''from https://github.com/kuangliu/pytorch-cifar/blob/master/models/preact_resnet.py'''
+    def __init__(self, layers, projection_layers: list[int], mean, std):
+        super().__init__()
+        self.act = nn.LeakyReLU(0.2)
+
+        in_channels = layers[0][0]
+        self.stem1 = nn.Sequential(
+            Normalize(mean=mean, std=std),
+            nn.Conv2d(3, in_channels, kernel_size=3, stride=1, padding=1))
+        self.stem2 = nn.Sequential(
+            Normalize(mean=mean, std=std),
+            nn.Conv2d(3, in_channels, kernel_size=3, stride=1, padding=1))
+        self.stem3 = nn.Sequential(
+            Normalize(mean=mean, std=std),
+            nn.Conv2d(3, in_channels, kernel_size=3, stride=1, padding=1))
+
+        stages = []
+        in_channels = layers[0][0]
+        for i, (out_channels, num_blocks) in enumerate(layers):
+            stage = []
+            if i > 0:
+                stage.append(nn.AvgPool2d(2))
+            for _ in range(num_blocks):
+                stage.append(ResBlock(in_channels, out_channels))
+                in_channels = out_channels
+            stages.append(nn.Sequential(*stage))
+        self.stages1 = nn.Sequential(*stages)
+
+        stages = []
+        in_channels = layers[0][0]
+        for i, (out_channels, num_blocks) in enumerate(layers):
+            stage = []
+            if i > 0:
+                stage.append(nn.AvgPool2d(2))
+            for _ in range(num_blocks):
+                stage.append(ResBlock(in_channels, out_channels))
+                in_channels = out_channels
+            stages.append(nn.Sequential(*stage))
+        self.stages2 = nn.Sequential(*stages)
+
+        stages = []
+        in_channels = layers[0][0]
+        for i, (out_channels, num_blocks) in enumerate(layers):
+            stage = []
+            if i > 0:
+                stage.append(nn.AvgPool2d(2))
+            for _ in range(num_blocks):
+                stage.append(ResBlock(in_channels, out_channels))
+                in_channels = out_channels
+            stages.append(nn.Sequential(*stage))
+        self.stages3 = nn.Sequential(*stages)
+
+        self.pool = GlobalAveragePooling()
+        self.head = get_mlp([in_channels*3, 2048, projection_layers[0]],
+                            act_fn=lambda: nn.LeakyReLU(0.2), bn=False, bias=True)
+        self.projection = get_mlp(projection_layers,
+                                  act_fn=lambda: nn.LeakyReLU(0.2), bn=False, bias=False)
+        self.projection_layers = projection_layers
+
+        for name, m in self.named_modules():
+            if isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0., .01)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='linear')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+    def forward(self, x):
+        out1 = self.stages1(self.stem1(x))
+        out2 = self.stages2(self.stem2(F.avg_pool2d(x, 2)))
+        out3 = self.stages3(self.stem3(F.avg_pool2d(x, 4)))
+        out = torch.cat([self.pool(self.act(out1)), self.pool(self.act(out2)), self.pool(self.act(out3))], dim=1)
+        f = self.head(out)
+        z = self.projection(f)
+        return f, z
+
+
 def get_ebm(name: str, input_shape: tuple[int], projection_layers: list[int],
             mean: list[float], std: list[float]):
     if name == 'resnet':
@@ -120,9 +200,9 @@ def get_ebm(name: str, input_shape: tuple[int], projection_layers: list[int],
         layers = [(64, 1), (64, 1), (128, 1), (128, 1)]
         encoder = ResNet(layers, projection_layers=projection_layers, mean=mean, std=std)
 
-    elif name == 'resnet64':
-        layers = [(64, 2), (128, 2), (128, 2), (256, 2), (256, 2)]
-        encoder = ResNet(layers, projection_layers=projection_layers, mean=mean, std=std)
+    elif name == 'resnet_large':
+        layers = [(256, 2), (256, 2), (256, 2), (256, 2)]
+        encoder = MSResNet(layers, projection_layers=projection_layers, mean=mean, std=std)
 
     else:
         raise Exception(f'Unknown Encoder: {name}')
